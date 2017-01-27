@@ -18,11 +18,13 @@ var root = {
 
 var app = express();
 
+app.use(express.static('public'));
+
 app.use('/graphql', graphqlHTTP({
   schema: schema,
   rootValue: root,
   graphiql: true
 }));
 
-app.listen(4000);
-console.log('Running a GraphQL API server at localhost:4000/graphql in ' + process.env.NODE_ENV);
+app.listen(80);
+console.log('Running a GraphQL API server at localhost:80/graphql in ' + process.env.NODE_ENV);

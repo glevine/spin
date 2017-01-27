@@ -6,7 +6,7 @@
   "license": "MIT",
   "bugs": "https://github.com/glevine/spin/issues",
   "scripts": {
-    "start": "yarn install && docker-compose up -d",
+    "start": "docker-compose up -d",
     "stop": "docker-compose stop",
     "down": "docker-compose down"
   },
