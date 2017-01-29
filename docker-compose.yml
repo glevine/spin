@@ -13,11 +13,9 @@ services:
     depends_on:
       - db
   db:
-    image: "neo4j"
+    image: neo4j
     environment:
       - NEO4J_AUTH=none
     ports:
       - "7474:7474"
       - "7687:7687"
-    volumes:
-      - ./data:/data
