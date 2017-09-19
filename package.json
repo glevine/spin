@@ -6,7 +6,7 @@
   "license": "MIT",
   "bugs": "https://github.com/glevine/spin/issues",
   "scripts": {
-    "up": "docker-compose up -d && ./data/seed.sh",
+    "demo": "./data/demo.sh",
     "down": "docker-compose down",
     "start": "docker-compose up -d",
     "stop": "docker-compose stop"
