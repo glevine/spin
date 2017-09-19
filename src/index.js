@@ -18,8 +18,6 @@ var root = {
 
 var app = express();
 
-app.use(express.static('public'));
-
 app.use('/graphql', graphqlHTTP({
   schema: schema,
   rootValue: root,

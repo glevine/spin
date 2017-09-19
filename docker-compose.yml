@@ -2,7 +2,7 @@ version: '2'
 services:
   web:
     build: .
-    command: nodemon --watch server server
+    command: nodemon --watch src src
     environment:
       - NODE_ENV=development
     ports:
