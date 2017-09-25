@@ -5,6 +5,7 @@ services:
     command: nodemon --watch src src
     environment:
       - NODE_ENV=development
+      - GRAPHENEDB_URL=http://db:7474/
     ports:
       - "4000:80"
     volumes:
