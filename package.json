@@ -6,7 +6,7 @@
   "license": "MIT",
   "bugs": "https://github.com/glevine/spin/issues",
   "scripts": {
-    "debug": "docker-compose run api",
+    "debug": "docker-compose run --service-ports api",
     "demo": "./data/demo.sh",
     "down": "docker-compose down",
     "start": "docker-compose up -d",
