@@ -3,9 +3,7 @@
 const express = require('express');
 const graphqlHTTP = require('express-graphql');
 const {buildSchema} = require('graphql');
-const fetch = require('node-fetch');
-
-const neo4jUrl = process.env.GRAPHENEDB_URL;
+const db = require('./db').graphql(process.env.GRAPHENEDB_URL);
 
 const schema = `
   type Resource {
@@ -30,37 +28,8 @@ const schema = `
   }
 `;
 
-function executeQuery(endpoint, options) {
-  const url = neo4jUrl + endpoint;
-
-  options = Object.assign({method: 'POST'}, options);
-
-  return fetch(url, options)
-    .then((response) => {
-      if (response.ok) {
-        return response.json();
-      }
-
-      throw new Error(`Request failed: ${url}`);
-    })
-    .catch((error) => {
-      console.log(error);
-      throw error;
-    });
-}
-
-function uploadSchema(schema) {
-  console.log('Uploading the schema...');
-  executeQuery('graphql/idl', {body: schema}).then((json) => {
-    console.log('Schema has been uploaded!');
-  })
-  .catch((error) => {
-    console.log('Retry upload schema...');
-    setTimeout(() => uploadSchema(schema), 2000);
-  });
-}
-
-uploadSchema(schema);
+db.on('schema:uploaded', () => console.log('Schema has been uploaded!'));
+db.schema = schema;
 
 const app = express();
 
