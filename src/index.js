@@ -48,6 +48,13 @@ app.use(graphqlHTTP({
 }));
 
 const server = app.listen(80, () => {
-  const address = server.address();
-  console.log(`Running a GraphQL API server at ${address.address}:${address.port} in ${app.get('env')}`);
+  const port = server.address().port;
+  require('dns').lookup(require('os').hostname(), (err, address, fam) => {
+    console.log(
+      'Running a GraphQL API server in %s at %s:%s',
+      app.get('env'),
+      address,
+      port
+    );
+  });
 });
