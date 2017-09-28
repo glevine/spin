@@ -103,25 +103,17 @@ class GraphQLDriver extends EventEmitter {
     }
 
     const self = this;
-    const body = {
-      query: "query {__schema {types {kind, name, description}}}"
-    }
-    const options = {
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    };
 
-    return execute(this.url, options).then((json) => {
-      if (json && json.data && json.data.__schema) {
-        self._schema = json.data.__schema;
-      } else {
-        throw new Error('The response did not include a schema');
-      }
+    return this.query("query {__schema {types {kind, name, description}}}")
+      .then((json) => {
+        if (json && json.data && json.data.__schema) {
+          self._schema = json.data.__schema;
+        } else {
+          throw new Error('The response did not include a schema');
+        }
 
-      return self._schema;
-    });
+        return self._schema;
+      });
   }
 
   /**
