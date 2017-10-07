@@ -15,7 +15,9 @@
   "dependencies": {
     "express": "*",
     "graphql": "*",
-    "express-graphql": "*",
-    "node-fetch": "*"
+    "node-fetch": "*",
+    "http-errors": "*",
+    "accepts": "*",
+    "body-parser": "*"
   }
 }

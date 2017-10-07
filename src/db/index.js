@@ -3,6 +3,41 @@
 const EventEmitter = require('events');
 const fetch = require('node-fetch');
 
+class Neo4jGraphQLError extends Error {
+  /**
+   * Creates a Neo4jGraphQLError instance that can be thrown for errors
+   * encountered using the Neo4j GraphQL extension.
+   *
+   * @param {int} [status] The HTTP status code for the error.
+   * @param {string} [message] Human-readable description of the error.
+   * @param {string} [fileName] The value for the fileName property on the
+   * created Error object. Defaults to the name of the file containing the code
+   * that called the Error() constructor.
+   * @param {string|int} [lineNumber] The value for the lineNumber property on
+   * the created Error object. Defaults to the line number containing the
+   * Error() constructor invocation.
+   */
+  constructor(status = 500, ...params) {
+    // Pass remaining arguments to parent constructor.
+    super(...params);
+
+    // Maintains proper stack trace for where our error was thrown.
+    Error.captureStackTrace(this, Neo4jGraphQLError);
+
+    this.status = status;
+  }
+
+  /**
+   * Returns a string representing the error.
+   *
+   * @example
+   * Code: 500, Message: Server Error
+   */
+  toString() {
+    return `Code: ${this.status}, Message: ${super.toString()}`;
+  }
+}
+
 /**
  * A wrapper around node-fetch to make requests against the Neo4j GraphQL
  * extension.
@@ -12,21 +47,22 @@ const fetch = require('node-fetch');
  * options, and their defaults, to use in the request.
  * @return {Promise} A promise for the server's response. The JSON response is
  * passed to the caller's then function.
- * @throws {Error} An error is raised for any failures.
+ * @throws {Error|Neo4jGraphQLError} An error is raised for any failures.
  */
 function execute(url, options) {
   options = Object.assign({method: 'POST'}, options);
 
   return fetch(url, options)
-    .then((response) => {
+    .then(response => {
       if (response.ok) {
         return response.json();
       }
 
-      throw new Error(`Request failed: ${url}`);
+      // Pass on the error we received.
+      throw new Neo4jGraphQLError(response.status, response.statusText);
     })
-    .catch((error) => {
-      console.log(error);
+    .catch(error => {
+      console.error(error);
       throw error;
     });
 }
@@ -74,10 +110,10 @@ class GraphQLDriver extends EventEmitter {
 
     this.emit('schema:upload', schema);
 
-    execute(`${this.url}idl`, {body: schema}).then((json) => {
+    execute(`${this.url}idl`, {body: schema}).then(json => {
       self.emit('schema:uploaded', schema);
     })
-    .catch((error) => {
+    .catch(error => {
       self.emit('schema:retry', schema);
       setTimeout(() => {
         self.schema = schema;
@@ -90,12 +126,14 @@ class GraphQLDriver extends EventEmitter {
    *
    * @example
    * driver.schema
-   *   .then((schema) => console.log(JSON.stringify(schema, null, 2)))
-   *   .catch((error) => console.log(error));
+   *   .then(schema => console.log(JSON.stringify(schema, null, 2)))
+   *   .catch(error => console.error(error));
    *
    * @return {Promise} A promise for the schema from the database.
-   * @throws {Error} An error is raised if the response does not include a
-   * schema.
+   * @throws {Neo4jGraphQLError} An error is raised if the response does not
+   * include a schema. Any errors that were encountered are available as a JSON
+   * string. Use `JSON.parse(error.message)` to view the errors in their
+   * original JSON form.
    */
   get schema() {
     if (this._schema) {
@@ -105,14 +143,17 @@ class GraphQLDriver extends EventEmitter {
     const self = this;
 
     return this.query("query {__schema {types {kind, name, description}}}")
-      .then((json) => {
-        if (json && json.data && json.data.__schema) {
+      .then(json => {
+        if (json.data && json.data.__schema) {
           self._schema = json.data.__schema;
-        } else {
-          throw new Error('The response did not include a schema');
+          return self._schema;
         }
 
-        return self._schema;
+        // The schema wasn't found.
+        throw new Neo4jGraphQLError(
+          404,
+          json.errors ? JSON.stringify(json.errors) : undefined
+        );
       });
   }
 
@@ -121,8 +162,15 @@ class GraphQLDriver extends EventEmitter {
    *
    * @param {string} query The GraphQL query to run.
    * @return {Promise} A promise for the response from the database.
+   * @throws {Neo4jGraphQLError} An error is raised if no query is provided.
+   * @throws {Neo4jGraphQLError} An error is raised if the response does not
+   * include data or errors.
    */
   query(query) {
+    if (!query) {
+      throw new Neo4jGraphQLError(400, 'Must provide query string.');
+    }
+
     query = {
       query: query
     };
@@ -133,12 +181,21 @@ class GraphQLDriver extends EventEmitter {
       },
       body: JSON.stringify(query)
     };
-    return execute(this.url, options);
+    return execute(this.url, options)
+      .then(json => {
+        // Return the JSON response as long as it has data and/or errors.
+        if (json.data || json.errors) {
+          return json;
+        }
+
+        // The response isn't really ok if there isn't any data or errors.
+        throw new Neo4jGraphQLError();
+      });
   }
 }
 
 module.exports = exports = {
-  graphql: function(url) {
+  graphql: function graphql(url) {
     return new GraphQLDriver(url);
   }
 };
