@@ -25,7 +25,11 @@ function isHtmlPreferred(request) {
   return require('accepts')(request).types(['json', 'html']) === 'html';
 }
 
-neo.on('schema:uploaded', () => console.log('Schema has been uploaded!'));
+let uploadingSchema = true;
+neo.on('schema:uploaded', () => {
+  uploadingSchema = false;
+  console.log('Schema has been uploaded!');
+});
 neo.schema = schema;
 
 const app = express();
@@ -38,6 +42,17 @@ app.use((request, response, next) => {
   if (!['GET', 'POST'].includes(request.method)) {
     response.setHeader('Allow', 'GET, POST');
     error = httpError(405, 'GraphQL only supports GET and POST requests.');
+  }
+
+  next(error);
+});
+
+// Let the user know that the API isn't ready yet.
+app.use((request, response, next) => {
+  let error;
+
+  if (uploadingSchema) {
+    error = httpError(503, 'Initializing GraphQL API.');
   }
 
   next(error);
