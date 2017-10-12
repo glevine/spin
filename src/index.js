@@ -4,7 +4,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const {buildSchema} = require('graphql');
 const httpError = require('http-errors');
-const db = require('./db').graphql(process.env.GRAPHENEDB_URL);
+const neo = require('./neo4j').graphql(process.env.GRAPHENEDB_URL);
 const schema = require('./schema');
 
 /**
@@ -25,8 +25,8 @@ function isHtmlPreferred(request) {
   return require('accepts')(request).types(['json', 'html']) === 'html';
 }
 
-db.on('schema:uploaded', () => console.log('Schema has been uploaded!'));
-db.schema = schema;
+neo.on('schema:uploaded', () => console.log('Schema has been uploaded!'));
+neo.schema = schema;
 
 const app = express();
 app.use(bodyParser.json());
@@ -58,7 +58,7 @@ if (inDev(app)) {
 app.use((request, response, next) => {
   const query = request.body && request.body.query ? request.body.query : null;
 
-  db.query(query)
+  neo.query(query)
     .then(json => {
       response.json(json);
       next();
