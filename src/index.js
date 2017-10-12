@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const {buildSchema} = require('graphql');
 const httpError = require('http-errors');
 const db = require('./db').graphql(process.env.GRAPHENEDB_URL);
+const schema = require('./schema');
 
 /**
  * Is the application in development?
@@ -23,29 +24,6 @@ function inDev(app) {
 function isHtmlPreferred(request) {
   return require('accepts')(request).types(['json', 'html']) === 'html';
 }
-
-const schema = `
-  type Resource {
-    location: ID!
-    linked_by: [Resource] @relation(name: "LINKED_TO", direction: "in")
-    linked_to: [Resource] @relation(name: "LINKED_TO", direction: "out")
-    topics: [Topic] @relation(name: "TAGGED_WITH")
-  }
-
-  type Topic {
-    name: ID!
-    resources: [Resource] @relation(name: "TAGGED_WITH")
-  }
-
-  type Query {
-    resource(location:ID!): Resource
-    topic(name:ID!): Topic
-  }
-
-  schema {
-    query: Query
-  }
-`;
 
 db.on('schema:uploaded', () => console.log('Schema has been uploaded!'));
 db.schema = schema;
